@@ -3,6 +3,15 @@ import os
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
+# Function to get the default branch of a repository
+def get_default_branch(owner, repo, token):
+    url = f"https://api.github.com/repos/{owner}/{repo}"
+    headers = {"Authorization": f"token {token}"}
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    repo_data = response.json()
+    return repo_data["default_branch"]
+
 # Function to get forks of a repository
 def get_forks(owner, repo, token):
     forks = []
@@ -48,7 +57,9 @@ def relative_time_from_now(date):
 
 # Check if a fork has new commits compared to its parent repository
 def has_new_commits(parent_owner, parent_repo, fork_owner, fork_repo, token):
-    url = f"https://api.github.com/repos/{parent_owner}/{parent_repo}/compare/{parent_owner}:main...{fork_owner}:main"
+    parent_default_branch = get_default_branch(parent_owner, parent_repo, token)
+    fork_default_branch = get_default_branch(fork_owner, fork_repo, token)
+    url = f"https://api.github.com/repos/{parent_owner}/{parent_repo}/compare/{parent_default_branch}...{fork_owner}:{fork_default_branch}"
     headers = {"Authorization": f"token {token}"}
     response = requests.get(url, headers=headers)
     response.raise_for_status()
