@@ -27,7 +27,7 @@ def get_unique_commits(owner, repo, token):
     return commits
 
 # Gather activity data recursively for forks and forks of forks
-def gather_activity(owner, repo, token, depth=0, max_depth=1):
+def gather_activity(owner, repo, token, depth=0, max_depth=1, parent_path=""):
     if depth > max_depth:
         return []
 
@@ -41,22 +41,46 @@ def gather_activity(owner, repo, token, depth=0, max_depth=1):
 
         # Exclude forks with no code changes
         if commits:
-            fork_activity.append({"fork": fork, "commits": len(commits)})
+            path = f"{parent_path}/{fork_owner}/{fork_repo}"
+            fork_activity.append({"fork": fork, "commits": len(commits), "path": path})
             # Recursively gather activity data for forks of forks
-            fork_activity.extend(gather_activity(fork_owner, fork_repo, token, depth + 1, max_depth))
+            fork_activity.extend(gather_activity(fork_owner, fork_repo, token, depth + 1, max_depth, path))
 
     return fork_activity
 
 # Generate HTML page
 def generate_html(fork_activity):
-    html = "<html><head><title>Fork Activity</title></head><body>"
-    html += "<h1>Fork Activity</h1><ul>"
-    for activity in fork_activity:
+    html = """
+    <html>
+    <head>
+        <title>Fork Activity</title>
+        <style>
+            ul { list-style-type: none; }
+            .repo { margin-left: 20px; }
+        </style>
+    </head>
+    <body>
+        <h1>Fork Activity</h1>
+        <ul>
+    """
+    def add_fork_to_html(activity, depth=0):
         repo_url = activity['fork']['html_url']
         repo_name = activity['fork']['full_name']
         commits = activity['commits']
-        html += f'<li><a href="{repo_url}" target="_blank">{repo_name}</a>: {commits} commits</li>'
-    html += "</ul></body></html>"
+        html_part = f'<li class="repo" style="margin-left:{depth * 20}px">'
+        html_part += f'<a href="{repo_url}" target="_blank">{repo_name}</a>: {commits} commits</li>'
+        return html_part
+
+    # Build the tree structure
+    for activity in fork_activity:
+        depth = activity['path'].count('/')
+        html += add_fork_to_html(activity, depth)
+
+    html += """
+        </ul>
+    </body>
+    </html>
+    """
 
     os.makedirs("public", exist_ok=True)
     with open("public/index.html", "w") as f:
