@@ -64,7 +64,7 @@ def generate_html(fork_activity):
 
 # Main function
 def main():
-    owner = "octocat"
+    owner = "NomisCZ"
     repo = "hlstatsx-community-edition"
     token = os.getenv("GITHUB_TOKEN")
 
