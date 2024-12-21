@@ -13,13 +13,18 @@ def get_forks(owner, repo, token):
         url = response.links.get("next", {}).get("url")
     return forks
 
-# Function to get recent commits of a repository
-def get_recent_commits(owner, repo, token):
+# Function to get unique commit SHAs of a repository
+def get_unique_commits(owner, repo, token):
+    commits = set()
     url = f"https://api.github.com/repos/{owner}/{repo}/commits"
     headers = {"Authorization": f"token {token}"}
-    response = requests.get(url, headers=headers)
-    response.raise_for_status()
-    return response.json()
+    while url:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        for commit in response.json():
+            commits.add(commit["sha"])
+        url = response.links.get("next", {}).get("url")
+    return commits
 
 # Gather activity data recursively for forks and forks of forks
 def gather_activity(owner, repo, token, depth=0, max_depth=1):
@@ -32,7 +37,7 @@ def gather_activity(owner, repo, token, depth=0, max_depth=1):
     for fork in forks:
         fork_owner = fork["owner"]["login"]
         fork_repo = fork["name"]
-        commits = get_recent_commits(fork_owner, fork_repo, token)
+        commits = get_unique_commits(fork_owner, fork_repo, token)
 
         # Exclude forks with no code changes
         if commits:
@@ -47,7 +52,10 @@ def generate_html(fork_activity):
     html = "<html><head><title>Fork Activity</title></head><body>"
     html += "<h1>Fork Activity</h1><ul>"
     for activity in fork_activity:
-        html += f"<li>{activity['fork']['full_name']}: {activity['commits']} commits</li>"
+        repo_url = activity['fork']['html_url']
+        repo_name = activity['fork']['full_name']
+        commits = activity['commits']
+        html += f'<li><a href="{repo_url}" target="_blank">{repo_name}</a>: {commits} commits</li>'
     html += "</ul></body></html>"
 
     os.makedirs("public", exist_ok=True)
@@ -56,7 +64,7 @@ def generate_html(fork_activity):
 
 # Main function
 def main():
-    owner = "NomisCZ"
+    owner = "octocat"
     repo = "hlstatsx-community-edition"
     token = os.getenv("GITHUB_TOKEN")
 
