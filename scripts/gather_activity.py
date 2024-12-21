@@ -4,7 +4,7 @@ import os
 # Function to get forks of a repository
 def get_forks(owner, repo, token):
     forks = []
-    url = f"https://api.github.com/repos/NomisCZ/hlstatsx-community-edition/forks"
+    url = f"https://api.github.com/repos/{owner}/{repo}/forks"
     headers = {"Authorization": f"token {token}"}
     while url:
         response = requests.get(url, headers=headers)
@@ -56,8 +56,8 @@ def generate_html(fork_activity):
 
 # Main function
 def main():
-    owner = "octocat"
-    repo = "Hello-World"
+    owner = "NomisCZ"
+    repo = "hlstatsx-community-edition"
     token = os.getenv("GITHUB_TOKEN")
 
     fork_activity = gather_activity(owner, repo, token, max_depth=2) # Adjust max_depth as needed
