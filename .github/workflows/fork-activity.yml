@@ -1,7 +1,8 @@
 name: Fork Activity
 on:
+  workflow_dispatch:
   schedule:
-    - cron: '0 0 * * *' # Runs daily at midnight UTC
+    - cron: '28 2 * * *' # Runs daily at midnight UTC
   push:
     branches:
       - main
