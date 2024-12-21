@@ -46,8 +46,17 @@ def relative_time_from_now(date):
     else:
         return "today"
 
+# Check if a fork has new commits compared to its parent repository
+def has_new_commits(parent_owner, parent_repo, fork_owner, fork_repo, token):
+    url = f"https://api.github.com/repos/{parent_owner}/{parent_repo}/compare/{parent_owner}:main...{fork_owner}:main"
+    headers = {"Authorization": f"token {token}"}
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    compare_data = response.json()
+    return compare_data["ahead_by"] > 0
+
 # Gather activity data recursively for forks and forks of forks
-def gather_activity(owner, repo, token, depth=0, max_depth=1, parent_path=""):
+def gather_activity(parent_owner, parent_repo, owner, repo, token, depth=0, max_depth=1, parent_path=""):
     if depth > max_depth:
         return []
 
@@ -60,14 +69,13 @@ def gather_activity(owner, repo, token, depth=0, max_depth=1, parent_path=""):
         commits, last_commit_date = get_commits_info(fork_owner, fork_repo, token)
 
         # Check if there are any new commits compared to the parent
-        if not commits:
+        if not has_new_commits(parent_owner, parent_repo, fork_owner, fork_repo, token):
             commits_count = "-"
             last_commit_date_rel = "-"
         else:
             commits_count = len(commits)
             last_commit_date_rel = relative_time_from_now(last_commit_date)
 
-        # Exclude forks with no code changes
         path = f"{parent_path}/{fork_owner}/{fork_repo}"
         fork_activity.append({
             "fork": fork,
@@ -76,7 +84,7 @@ def gather_activity(owner, repo, token, depth=0, max_depth=1, parent_path=""):
             "path": path
         })
         # Recursively gather activity data for forks of forks
-        fork_activity.extend(gather_activity(fork_owner, fork_repo, token, depth + 1, max_depth, path))
+        fork_activity.extend(gather_activity(fork_owner, fork_repo, fork_owner, fork_repo, token, depth + 1, max_depth, path))
 
     return fork_activity
 
@@ -158,7 +166,7 @@ def main():
     # Get parent repository commits and last commit date
     parent_commits, parent_last_commit_date = get_commits_info(owner, repo, token)
     
-    fork_activity = gather_activity(owner, repo, token, max_depth=2) # Adjust max_depth as needed
+    fork_activity = gather_activity(owner, repo, owner, repo, token, max_depth=2) # Adjust max_depth as needed
     # Remove duplicates by full_name
     unique_activity = {activity['fork']['full_name']: activity for activity in fork_activity}.values()
     generate_html(unique_activity, f"{owner}/{repo}", len(parent_commits), parent_last_commit_date)
