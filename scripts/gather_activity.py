@@ -108,8 +108,9 @@ def generate_html(fork_activity, parent_repo, parent_commits, parent_last_commit
         repo_name = activity['fork']['full_name']
         commits = activity['commits']
         last_commit_date = relative_time_from_now(activity['last_commit_date'])
-        html_part = f'<tr style="margin-left:{depth * 20}px">'
-        html_part += f'<td><a href="{repo_url}" target="_blank">{repo_name}</a></td>'
+        indent = "&nbsp;" * (depth * 4)  # Indentation for tree structure
+        html_part = f'<tr>'
+        html_part += f'<td>{indent}<a href="{repo_url}" target="_blank">{repo_name}</a></td>'
         html_part += f'<td>{commits}</td>'
         html_part += f'<td>{last_commit_date}</td>'
         html_part += '</tr>'
