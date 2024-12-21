@@ -3,9 +3,7 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '28 2 * * *' # Runs daily at midnight UTC
-  push:
-    branches:
-      - main
+
 
 jobs:
   gather-activity:
