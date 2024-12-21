@@ -42,6 +42,25 @@ def get_commits_info(owner, repo, token):
         url = response.links.get("next", {}).get("url")
     return commits, last_commit_date
 
+# Function to get the number of open issues and the last release number of a repository
+def get_repo_info(owner, repo, token):
+    url = f"https://api.github.com/repos/{owner}/{repo}"
+    headers = {"Authorization": f"token {token}"}
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    repo_data = response.json()
+    open_issues_count = repo_data["open_issues_count"]
+    
+    url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        release_data = response.json()
+        last_release_number = release_data["tag_name"]
+    else:
+        last_release_number = "-"
+    
+    return open_issues_count, last_release_number
+
 # Calculate the relative time from the current date
 def relative_time_from_now(date):
     now = datetime.utcnow()
@@ -83,15 +102,20 @@ def gather_activity(parent_owner, parent_repo, owner, repo, token, depth=0, max_
         if not has_new_commits(parent_owner, parent_repo, fork_owner, fork_repo, token):
             commits_count = "-"
             last_commit_date_rel = "-"
+            open_issues_count = "-"
+            last_release_number = "-"
         else:
             commits_count = len(commits)
             last_commit_date_rel = relative_time_from_now(last_commit_date)
+            open_issues_count, last_release_number = get_repo_info(fork_owner, fork_repo, token)
 
         path = f"{parent_path}/{fork_owner}/{fork_repo}"
         fork_activity.append({
             "fork": fork,
             "commits": commits_count,
             "last_commit_date": last_commit_date_rel,
+            "open_issues_count": open_issues_count,
+            "last_release_number": last_release_number,
             "path": path
         })
         # Recursively gather activity data for forks of forks
@@ -100,7 +124,7 @@ def gather_activity(parent_owner, parent_repo, owner, repo, token, depth=0, max_
     return fork_activity
 
 # Generate HTML page
-def generate_html(fork_activity, parent_repo, parent_commits, parent_last_commit_date):
+def generate_html(fork_activity, parent_repo, parent_commits, parent_last_commit_date, parent_open_issues, parent_last_release):
     html = """
     <html>
     <head>
@@ -127,6 +151,8 @@ def generate_html(fork_activity, parent_repo, parent_commits, parent_last_commit
                 <th>Repository</th>
                 <th>Commits</th>
                 <th>Last Commit</th>
+                <th>Open Issues</th>
+                <th>Last Release</th>
             </tr>
     """
     def add_fork_to_html(activity, depth=0):
@@ -134,11 +160,15 @@ def generate_html(fork_activity, parent_repo, parent_commits, parent_last_commit
         repo_name = activity['fork']['full_name']
         commits = activity['commits']
         last_commit_date = activity['last_commit_date']
+        open_issues_count = activity['open_issues_count']
+        last_release_number = activity['last_release_number']
         indent = "&nbsp;" * (depth * 4)  # Indentation for tree structure
         html_part = f'<tr>'
         html_part += f'<td>{indent}<a href="{repo_url}" target="_blank">{repo_name}</a></td>'
         html_part += f'<td>{commits}</td>'
         html_part += f'<td>{last_commit_date}</td>'
+        html_part += f'<td>{open_issues_count}</td>'
+        html_part += f'<td>{last_release_number}</td>'
         html_part += '</tr>'
         return html_part
 
@@ -150,6 +180,8 @@ def generate_html(fork_activity, parent_repo, parent_commits, parent_last_commit
                 <td><a href="{parent_repo_url}" target="_blank">{parent_repo}</a></td>
                 <td>{parent_commits}</td>
                 <td>{parent_last_commit_relative}</td>
+                <td>{parent_open_issues}</td>
+                <td>{parent_last_release}</td>
             </tr>
     """
 
@@ -174,13 +206,14 @@ def main():
     repo = "hlstatsx-community-edition"
     token = os.getenv("GITHUB_TOKEN")
 
-    # Get parent repository commits and last commit date
+    # Get parent repository commits, last commit date, open issues, and last release number
     parent_commits, parent_last_commit_date = get_commits_info(owner, repo, token)
+    parent_open_issues, parent_last_release = get_repo_info(owner, repo, token)
     
     fork_activity = gather_activity(owner, repo, owner, repo, token, max_depth=2) # Adjust max_depth as needed
     # Remove duplicates by full_name
     unique_activity = {activity['fork']['full_name']: activity for activity in fork_activity}.values()
-    generate_html(unique_activity, f"{owner}/{repo}", len(parent_commits), parent_last_commit_date)
+    generate_html(unique_activity, f"{owner}/{repo}", len(parent_commits), parent_last_commit_date, parent_open_issues, parent_last_release)
 
 if __name__ == "__main__":
     main()
