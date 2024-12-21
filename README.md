@@ -1,2 +1,2 @@
 Scrape and export all HLStatsX Repos<br>
-https://dna-styx.github.io/HLStatsX-Scraper/
+https://dna-styx.github.io/HLStatsX-Fork-Activity/
