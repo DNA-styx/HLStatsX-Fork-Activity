@@ -59,17 +59,24 @@ def gather_activity(owner, repo, token, depth=0, max_depth=1, parent_path=""):
         fork_repo = fork["name"]
         commits, last_commit_date = get_commits_info(fork_owner, fork_repo, token)
 
+        # Check if there are any new commits compared to the parent
+        if not commits:
+            commits_count = "-"
+            last_commit_date_rel = "-"
+        else:
+            commits_count = len(commits)
+            last_commit_date_rel = relative_time_from_now(last_commit_date)
+
         # Exclude forks with no code changes
-        if commits:
-            path = f"{parent_path}/{fork_owner}/{fork_repo}"
-            fork_activity.append({
-                "fork": fork,
-                "commits": len(commits),
-                "last_commit_date": last_commit_date,
-                "path": path
-            })
-            # Recursively gather activity data for forks of forks
-            fork_activity.extend(gather_activity(fork_owner, fork_repo, token, depth + 1, max_depth, path))
+        path = f"{parent_path}/{fork_owner}/{fork_repo}"
+        fork_activity.append({
+            "fork": fork,
+            "commits": commits_count,
+            "last_commit_date": last_commit_date_rel,
+            "path": path
+        })
+        # Recursively gather activity data for forks of forks
+        fork_activity.extend(gather_activity(fork_owner, fork_repo, token, depth + 1, max_depth, path))
 
     return fork_activity
 
@@ -107,7 +114,7 @@ def generate_html(fork_activity, parent_repo, parent_commits, parent_last_commit
         repo_url = activity['fork']['html_url']
         repo_name = activity['fork']['full_name']
         commits = activity['commits']
-        last_commit_date = relative_time_from_now(activity['last_commit_date'])
+        last_commit_date = activity['last_commit_date']
         indent = "&nbsp;" * (depth * 4)  # Indentation for tree structure
         html_part = f'<tr>'
         html_part += f'<td>{indent}<a href="{repo_url}" target="_blank">{repo_name}</a></td>'
