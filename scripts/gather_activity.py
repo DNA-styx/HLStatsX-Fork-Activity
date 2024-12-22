@@ -130,29 +130,17 @@ def generate_html(fork_activity, parent_repo, parent_commits, parent_last_commit
     <head>
         <title>Fork Activity</title>
         <style>
-            body {
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                height: 100vh;
-                margin: 0;
-                font-family: Arial, sans-serif;
-            }
             table {
-                width: 80%;
+                width: 100%;
                 border-collapse: collapse;
-                margin: 20px 0;
             }
             th, td {
                 border: 1px solid black;
-                padding: 6px;
+                padding: 8px;
                 text-align: left;
             }
             th {
                 background-color: #f2f2f2;
-            }
-            td {
-                vertical-align: middle;
             }
         </style>
     </head>
