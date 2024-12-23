@@ -117,6 +117,8 @@ def gather_activity(parent_owner, parent_repo, owner, repo, token, depth=0, max_
         else:
             last_commit_date_rel = relative_time_from_now(last_commit_date)
             open_issues_count, last_release_number = get_repo_info(fork_owner, fork_repo, token)
+            if open_issues_count == 0:
+                open_issues_count = "-"
 
         path = f"{parent_path}/{fork_owner}/{fork_repo}"
         fork_activity.append({
@@ -223,6 +225,8 @@ def main():
     # Get parent repository commits, last commit date, open issues, and last release number
     parent_commits, parent_last_commit_date = get_commits_info(owner, repo, token)
     parent_open_issues, parent_last_release = get_repo_info(owner, repo, token)
+    if parent_open_issues == 0:
+        parent_open_issues = "-"
     
     fork_activity = gather_activity(owner, repo, owner, repo, token, max_depth=2) # Adjust max_depth as needed
     # Remove duplicates by full_name
