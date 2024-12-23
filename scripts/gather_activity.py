@@ -24,6 +24,17 @@ def get_forks(owner, repo, token):
         url = response.links.get("next", {}).get("url")
     return forks
 
+# Function to get the number of commits ahead of the parent repository
+def get_commits_ahead(parent_owner, parent_repo, fork_owner, fork_repo, token):
+    parent_default_branch = get_default_branch(parent_owner, parent_repo, token)
+    fork_default_branch = get_default_branch(fork_owner, fork_repo, token)
+    url = f"https://api.github.com/repos/{parent_owner}/{parent_repo}/compare/{parent_default_branch}...{fork_owner}:{fork_default_branch}"
+    headers = {"Authorization": f"token {token}"}
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    compare_data = response.json()
+    return compare_data["ahead_by"]
+
 # Function to get unique commit SHAs and the date of the last commit of a repository
 def get_commits_info(owner, repo, token):
     commits = set()
@@ -76,14 +87,8 @@ def relative_time_from_now(date):
 
 # Check if a fork has new commits compared to its parent repository
 def has_new_commits(parent_owner, parent_repo, fork_owner, fork_repo, token):
-    parent_default_branch = get_default_branch(parent_owner, parent_repo, token)
-    fork_default_branch = get_default_branch(fork_owner, fork_repo, token)
-    url = f"https://api.github.com/repos/{parent_owner}/{parent_repo}/compare/{parent_default_branch}...{fork_owner}:{fork_default_branch}"
-    headers = {"Authorization": f"token {token}"}
-    response = requests.get(url, headers=headers)
-    response.raise_for_status()
-    compare_data = response.json()
-    return compare_data["ahead_by"] > 0
+    commits_ahead = get_commits_ahead(parent_owner, parent_repo, fork_owner, fork_repo, token)
+    return commits_ahead > 0
 
 # Gather activity data recursively for forks and forks of forks
 def gather_activity(parent_owner, parent_repo, owner, repo, token, depth=0, max_depth=1, parent_path=""):
@@ -99,13 +104,14 @@ def gather_activity(parent_owner, parent_repo, owner, repo, token, depth=0, max_
         commits, last_commit_date = get_commits_info(fork_owner, fork_repo, token)
 
         # Check if there are any new commits compared to the parent
-        if not has_new_commits(parent_owner, parent_repo, fork_owner, fork_repo, token):
+        commits_ahead = get_commits_ahead(parent_owner, parent_repo, fork_owner, fork_repo, token)
+        if commits_ahead == 0:
             commits_count = "-"
             last_commit_date_rel = "-"
             open_issues_count = "-"
             last_release_number = "-"
         else:
-            commits_count = len(commits)
+            commits_count = commits_ahead
             last_commit_date_rel = relative_time_from_now(last_commit_date)
             open_issues_count, last_release_number = get_repo_info(fork_owner, fork_repo, token)
 
@@ -149,7 +155,7 @@ def generate_html(fork_activity, parent_repo, parent_commits, parent_last_commit
         <table>
             <tr>
                 <th>Repository</th>
-                <th>Commits</th>
+                <th>Commits Ahead</th>
                 <th>Last Commit</th>
                 <th>Open Issues</th>
                 <th>Last Release</th>
