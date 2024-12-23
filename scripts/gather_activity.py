@@ -12,6 +12,15 @@ def get_default_branch(owner, repo, token):
     repo_data = response.json()
     return repo_data["default_branch"]
 
+# Function to get the description (About text) of a repository
+def get_repo_description(owner, repo, token):
+    url = f"https://api.github.com/repos/{owner}/{repo}"
+    headers = {"Authorization": f"token {token}"}
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    repo_data = response.json()
+    return repo_data.get("description", "")
+
 # Function to get forks of a repository
 def get_forks(owner, repo, token):
     forks = []
@@ -136,7 +145,7 @@ def gather_activity(parent_owner, parent_repo, owner, repo, token, depth=0, max_
     return fork_activity
 
 # Generate HTML page
-def generate_html(fork_activity, parent_repo, parent_commits, parent_last_commit_date, parent_open_issues, parent_last_release):
+def generate_html(fork_activity, parent_repo, parent_commits, parent_last_commit_date, parent_open_issues, parent_last_release, parent_description):
     html = """
     <html>
     <head>
@@ -187,12 +196,12 @@ def generate_html(fork_activity, parent_repo, parent_commits, parent_last_commit
         html_part += '</tr>'
         return html_part
 
-    # Add the parent repository at the top
+    # Add the parent repository at the top with description
     parent_repo_url = f"https://github.com/{parent_repo}"
     parent_last_commit_relative = relative_time_from_now(parent_last_commit_date)
     html += f"""
             <tr>
-                <td><a href="{parent_repo_url}" target="_blank">{parent_repo}</a></td>
+                <td><a href="{parent_repo_url}" target="_blank">{parent_repo}</a><br>{parent_description}</td>
                 <td>-</td>
                 <td>-</td>
                 <td>{parent_last_commit_relative}</td>
@@ -222,7 +231,8 @@ def main():
     repo = "hlstatsx-community-edition"
     token = os.getenv("GITHUB_TOKEN")
 
-    # Get parent repository commits, last commit date, open issues, and last release number
+    # Get parent repository description, commits, last commit date, open issues, and last release number
+    parent_description = get_repo_description(owner, repo, token)
     parent_commits, parent_last_commit_date = get_commits_info(owner, repo, token)
     parent_open_issues, parent_last_release = get_repo_info(owner, repo, token)
     if parent_open_issues == 0:
@@ -231,7 +241,7 @@ def main():
     fork_activity = gather_activity(owner, repo, owner, repo, token, max_depth=2) # Adjust max_depth as needed
     # Remove duplicates by full_name
     unique_activity = {activity['fork']['full_name']: activity for activity in fork_activity}.values()
-    generate_html(unique_activity, f"{owner}/{repo}", len(parent_commits), parent_last_commit_date, parent_open_issues, parent_last_release)
+    generate_html(unique_activity, f"{owner}/{repo}", len(parent_commits), parent_last_commit_date, parent_open_issues, parent_last_release, parent_description)
 
 if __name__ == "__main__":
     main()
