@@ -19,7 +19,11 @@ def get_repo_description(owner, repo, token):
     response = requests.get(url, headers=headers)
     response.raise_for_status()
     repo_data = response.json()
-    return repo_data.get("description", "")
+    description = repo_data.get("description", "")
+    # Remove the prefix 'HLstatsX Community Edition - ' if it exists
+    if description.startswith("HLstatsX Community Edition - "):
+        description = description.replace("HLstatsX Community Edition - ", "", 1)
+    return description
 
 # Function to get forks of a repository
 def get_forks(owner, repo, token):
