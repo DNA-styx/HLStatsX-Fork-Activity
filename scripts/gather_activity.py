@@ -100,15 +100,21 @@ def gather_activity(parent_owner, parent_repo, owner, repo, token, depth=0, max_
 
         # Get the number of commits ahead and behind the parent
         commits_ahead, commits_behind = get_commits_ahead_behind(parent_owner, parent_repo, fork_owner, fork_repo, token)
-        if commits_ahead == 0 and commits_behind == 0:
+        if commits_ahead == 0:
             commits_ahead_count = "-"
+        else:
+            commits_ahead_count = commits_ahead
+
+        if commits_behind == 0:
             commits_behind_count = "-"
+        else:
+            commits_behind_count = commits_behind
+
+        if commits_ahead == 0 and commits_behind == 0:
             last_commit_date_rel = "-"
             open_issues_count = "-"
             last_release_number = "-"
         else:
-            commits_ahead_count = commits_ahead
-            commits_behind_count = commits_behind
             last_commit_date_rel = relative_time_from_now(last_commit_date)
             open_issues_count, last_release_number = get_repo_info(fork_owner, fork_repo, token)
 
