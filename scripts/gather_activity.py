@@ -24,8 +24,8 @@ def get_forks(owner, repo, token):
         url = response.links.get("next", {}).get("url")
     return forks
 
-# Function to get the number of commits ahead of the parent repository
-def get_commits_ahead(parent_owner, parent_repo, fork_owner, fork_repo, token):
+# Function to get the number of commits ahead and behind the parent repository
+def get_commits_ahead_behind(parent_owner, parent_repo, fork_owner, fork_repo, token):
     parent_default_branch = get_default_branch(parent_owner, parent_repo, token)
     fork_default_branch = get_default_branch(fork_owner, fork_repo, token)
     url = f"https://api.github.com/repos/{parent_owner}/{parent_repo}/compare/{parent_default_branch}...{fork_owner}:{fork_default_branch}"
@@ -33,7 +33,7 @@ def get_commits_ahead(parent_owner, parent_repo, fork_owner, fork_repo, token):
     response = requests.get(url, headers=headers)
     response.raise_for_status()
     compare_data = response.json()
-    return compare_data["ahead_by"]
+    return compare_data["ahead_by"], compare_data["behind_by"]
 
 # Function to get unique commit SHAs and the date of the last commit of a repository
 def get_commits_info(owner, repo, token):
@@ -85,11 +85,6 @@ def relative_time_from_now(date):
     else:
         return "today"
 
-# Check if a fork has new commits compared to its parent repository
-def has_new_commits(parent_owner, parent_repo, fork_owner, fork_repo, token):
-    commits_ahead = get_commits_ahead(parent_owner, parent_repo, fork_owner, fork_repo, token)
-    return commits_ahead > 0
-
 # Gather activity data recursively for forks and forks of forks
 def gather_activity(parent_owner, parent_repo, owner, repo, token, depth=0, max_depth=1, parent_path=""):
     if depth > max_depth:
@@ -103,22 +98,25 @@ def gather_activity(parent_owner, parent_repo, owner, repo, token, depth=0, max_
         fork_repo = fork["name"]
         commits, last_commit_date = get_commits_info(fork_owner, fork_repo, token)
 
-        # Check if there are any new commits compared to the parent
-        commits_ahead = get_commits_ahead(parent_owner, parent_repo, fork_owner, fork_repo, token)
-        if commits_ahead == 0:
-            commits_count = "-"
+        # Get the number of commits ahead and behind the parent
+        commits_ahead, commits_behind = get_commits_ahead_behind(parent_owner, parent_repo, fork_owner, fork_repo, token)
+        if commits_ahead == 0 and commits_behind == 0:
+            commits_ahead_count = "-"
+            commits_behind_count = "-"
             last_commit_date_rel = "-"
             open_issues_count = "-"
             last_release_number = "-"
         else:
-            commits_count = commits_ahead
+            commits_ahead_count = commits_ahead
+            commits_behind_count = commits_behind
             last_commit_date_rel = relative_time_from_now(last_commit_date)
             open_issues_count, last_release_number = get_repo_info(fork_owner, fork_repo, token)
 
         path = f"{parent_path}/{fork_owner}/{fork_repo}"
         fork_activity.append({
             "fork": fork,
-            "commits": commits_count,
+            "commits_ahead": commits_ahead_count,
+            "commits_behind": commits_behind_count,
             "last_commit_date": last_commit_date_rel,
             "open_issues_count": open_issues_count,
             "last_release_number": last_release_number,
@@ -156,6 +154,7 @@ def generate_html(fork_activity, parent_repo, parent_commits, parent_last_commit
             <tr>
                 <th>Repository</th>
                 <th>Commits Ahead</th>
+                <th>Commits Behind</th>
                 <th>Last Commit</th>
                 <th>Open Issues</th>
                 <th>Last Release</th>
@@ -164,14 +163,16 @@ def generate_html(fork_activity, parent_repo, parent_commits, parent_last_commit
     def add_fork_to_html(activity, depth=0):
         repo_url = activity['fork']['html_url']
         repo_name = activity['fork']['full_name']
-        commits = activity['commits']
+        commits_ahead = activity['commits_ahead']
+        commits_behind = activity['commits_behind']
         last_commit_date = activity['last_commit_date']
         open_issues_count = activity['open_issues_count']
         last_release_number = activity['last_release_number']
         indent = "&nbsp;" * (depth * 4)  # Indentation for tree structure
         html_part = f'<tr>'
         html_part += f'<td>{indent}<a href="{repo_url}" target="_blank">{repo_name}</a></td>'
-        html_part += f'<td>{commits}</td>'
+        html_part += f'<td>{commits_ahead}</td>'
+        html_part += f'<td>{commits_behind}</td>'
         html_part += f'<td>{last_commit_date}</td>'
         html_part += f'<td>{open_issues_count}</td>'
         html_part += f'<td>{last_release_number}</td>'
@@ -184,7 +185,8 @@ def generate_html(fork_activity, parent_repo, parent_commits, parent_last_commit
     html += f"""
             <tr>
                 <td><a href="{parent_repo_url}" target="_blank">{parent_repo}</a></td>
-                <td>{parent_commits}</td>
+                <td>-</td>
+                <td>-</td>
                 <td>{parent_last_commit_relative}</td>
                 <td>{parent_open_issues}</td>
                 <td>{parent_last_release}</td>
