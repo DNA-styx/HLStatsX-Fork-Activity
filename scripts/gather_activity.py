@@ -60,6 +60,8 @@ def get_commits_info(owner, repo, token):
         for commit in commit_data:
             commits.add(commit["sha"])
             commit_date = datetime.strptime(commit["commit"]["committer"]["date"], "%Y-%m-%dT%H:%M:%SZ")
+            # Make the commit date offset-aware
+            commit_date = commit_date.replace(tzinfo=timezone.utc)
             if not last_commit_date or commit_date > last_commit_date:
                 last_commit_date = commit_date
         url = response.links.get("next", {}).get("url")
