@@ -22,6 +22,15 @@ def get_repo_description(owner, repo, token):
     description = repo_data.get("description", "")
     return description or ""
 
+# Function to get the number of stars of a repository
+def get_repo_stars(owner, repo, token):
+    url = f"https://api.github.com/repos/{owner}/{repo}"
+    headers = {"Authorization": f"token {token}"}
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    repo_data = response.json()
+    return repo_data["stargazers_count"]
+
 # Function to get forks of a repository
 def get_forks(owner, repo, token):
     forks = []
@@ -135,10 +144,14 @@ def gather_activity(parent_owner, parent_repo, owner, repo, token, depth=0, max_
         # Get the description of the fork
         fork_description = get_repo_description(fork_owner, fork_repo, token)
 
+        # Get the stars of the fork
+        fork_stars = get_repo_stars(fork_owner, fork_repo, token)
+
         path = f"{parent_path}/{fork_owner}/{fork_repo}"
         fork_activity.append({
             "fork": fork,
             "description": fork_description,
+            "stars": fork_stars,
             "commits_ahead": commits_ahead_count,
             "commits_behind": commits_behind_count,
             "last_commit_date": last_commit_date_rel,
@@ -193,14 +206,16 @@ def generate_html(fork_activity, parent_repo, parent_commits, parent_last_commit
         repo_url = activity['fork']['html_url']
         repo_name = activity['fork']['full_name']
         description = activity['description']
+        stars = activity['stars']
         commits_ahead = activity['commits_ahead']
         commits_behind = activity['commits_behind']
         last_commit_date = activity['last_commit_date']
         open_issues_count = activity['open_issues_count']
         last_release_number = activity['last_release_number']
         indent = "&nbsp;" * (depth * 4)  # Indentation for tree structure
+        stars_badge = f'<img src="https://img.shields.io/badge/stars-{stars}-brightgreen" alt="Stars">' if stars > 1 else ""
         html_part = f'<tr>'
-        html_part += f'<td>{indent}<a href="{repo_url}" target="_blank">{repo_name}</a></td>'
+        html_part += f'<td>{indent}<a href="{repo_url}" target="_blank">{repo_name}</a> {stars_badge}</td>'
         html_part += f'<td>{commits_ahead}</td>'
         html_part += f'<td>{commits_behind}</td>'
         html_part += f'<td>{last_commit_date}</td>'
@@ -213,9 +228,11 @@ def generate_html(fork_activity, parent_repo, parent_commits, parent_last_commit
     # Add the parent repository at the top with description
     parent_repo_url = f"https://github.com/{parent_repo}"
     parent_last_commit_relative = relative_time_from_now(parent_last_commit_date)
+    parent_stars = get_repo_stars(parent_repo.split('/')[0], parent_repo.split('/')[1], os.getenv("GITHUB_TOKEN"))
+    parent_stars_badge = f'<img src="https://img.shields.io/badge/stars-{parent_stars}-brightgreen" alt="Stars">' if parent_stars > 1 else ""
     html += f"""
             <tr>
-                <td><a href="{parent_repo_url}" target="_blank">{parent_repo}</a></td>
+                <td><a href="{parent_repo_url}" target="_blank">{parent_repo}</a> {parent_stars_badge}</td>
                 <td>-</td>
                 <td>-</td>
                 <td>{parent_last_commit_relative}</td>
