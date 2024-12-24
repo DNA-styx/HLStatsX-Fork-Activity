@@ -168,6 +168,7 @@ def generate_html(fork_activity, parent_repo, parent_commits, parent_last_commit
                 border: 1px solid black;
                 padding: 8px;
                 text-align: left;
+                vertical-align: top;
             }
             th {
                 background-color: #f2f2f2;
@@ -200,13 +201,14 @@ def generate_html(fork_activity, parent_repo, parent_commits, parent_last_commit
         last_release_number = activity['last_release_number']
         indent = "&nbsp;" * (depth * 4)  # Indentation for tree structure
         html_part = f'<tr>'
-        html_part += f'<td>{indent}<a href="{repo_url}" target="_blank">{repo_name}</a><br><span class="small-font">{description}</span></td>'
+        html_part += f'<td>{indent}<a href="{repo_url}" target="_blank">{repo_name}</a></td>'
         html_part += f'<td>{commits_ahead}</td>'
         html_part += f'<td>{commits_behind}</td>'
         html_part += f'<td>{last_commit_date}</td>'
         html_part += f'<td>{open_issues_count}</td>'
         html_part += f'<td>{last_release_number}</td>'
         html_part += '</tr>'
+        html_part += f'<tr><td colspan="6" class="small-font">{indent}{description}</td></tr>'
         return html_part
 
     # Add the parent repository at the top with description
@@ -214,13 +216,14 @@ def generate_html(fork_activity, parent_repo, parent_commits, parent_last_commit
     parent_last_commit_relative = relative_time_from_now(parent_last_commit_date)
     html += f"""
             <tr>
-                <td><a href="{parent_repo_url}" target="_blank">{parent_repo}</a><br><span class="small-font">{parent_description}</span></td>
+                <td><a href="{parent_repo_url}" target="_blank">{parent_repo}</a></td>
                 <td>-</td>
                 <td>-</td>
                 <td>{parent_last_commit_relative}</td>
                 <td>{parent_open_issues}</td>
                 <td>{parent_last_release}</td>
             </tr>
+            <tr><td colspan="6" class="small-font">{parent_description}</td></tr>
     """
 
     # Build the tree structure
