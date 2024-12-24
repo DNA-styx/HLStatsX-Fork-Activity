@@ -1,6 +1,6 @@
 import requests
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from dateutil.relativedelta import relativedelta
 
 # Function to get the default branch of a repository
@@ -20,10 +20,9 @@ def get_repo_description(owner, repo, token):
     response.raise_for_status()
     repo_data = response.json()
     description = repo_data.get("description", "")
-    # Remove the prefix 'HLstatsX Community Edition - ' if it exists
-    if description.startswith("HLstatsX Community Edition - "):
+    if description and description.startswith("HLstatsX Community Edition - "):
         description = description.replace("HLstatsX Community Edition - ", "", 1)
-    return description
+    return description or ""
 
 # Function to get forks of a repository
 def get_forks(owner, repo, token):
@@ -87,7 +86,7 @@ def get_repo_info(owner, repo, token):
 
 # Calculate the relative time from the current date
 def relative_time_from_now(date):
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     diff = relativedelta(now, date)
     if diff.years > 0:
         return f"{diff.years} years ago"
