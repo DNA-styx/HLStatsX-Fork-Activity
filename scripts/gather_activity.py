@@ -133,9 +133,13 @@ def gather_activity(parent_owner, parent_repo, owner, repo, token, depth=0, max_
             if open_issues_count == 0:
                 open_issues_count = "-"
 
+        # Get the description of the fork
+        fork_description = get_repo_description(fork_owner, fork_repo, token)
+
         path = f"{parent_path}/{fork_owner}/{fork_repo}"
         fork_activity.append({
             "fork": fork,
+            "description": fork_description,
             "commits_ahead": commits_ahead_count,
             "commits_behind": commits_behind_count,
             "last_commit_date": last_commit_date_rel,
@@ -167,6 +171,9 @@ def generate_html(fork_activity, parent_repo, parent_commits, parent_last_commit
             th {
                 background-color: #f2f2f2;
             }
+            .small-font {
+                font-size: small;
+            }
         </style>
     </head>
     <body>
@@ -184,6 +191,7 @@ def generate_html(fork_activity, parent_repo, parent_commits, parent_last_commit
     def add_fork_to_html(activity, depth=0):
         repo_url = activity['fork']['html_url']
         repo_name = activity['fork']['full_name']
+        description = activity['description']
         commits_ahead = activity['commits_ahead']
         commits_behind = activity['commits_behind']
         last_commit_date = activity['last_commit_date']
@@ -191,7 +199,7 @@ def generate_html(fork_activity, parent_repo, parent_commits, parent_last_commit
         last_release_number = activity['last_release_number']
         indent = "&nbsp;" * (depth * 4)  # Indentation for tree structure
         html_part = f'<tr>'
-        html_part += f'<td>{indent}<a href="{repo_url}" target="_blank">{repo_name}</a></td>'
+        html_part += f'<td>{indent}<a href="{repo_url}" target="_blank">{repo_name}</a><br><span class="small-font">{description}</span></td>'
         html_part += f'<td>{commits_ahead}</td>'
         html_part += f'<td>{commits_behind}</td>'
         html_part += f'<td>{last_commit_date}</td>'
@@ -205,7 +213,7 @@ def generate_html(fork_activity, parent_repo, parent_commits, parent_last_commit
     parent_last_commit_relative = relative_time_from_now(parent_last_commit_date)
     html += f"""
             <tr>
-                <td><a href="{parent_repo_url}" target="_blank">{parent_repo}</a><br>{parent_description}</td>
+                <td><a href="{parent_repo_url}" target="_blank">{parent_repo}</a><br><span class="small-font">{parent_description}</span></td>
                 <td>-</td>
                 <td>-</td>
                 <td>{parent_last_commit_relative}</td>
