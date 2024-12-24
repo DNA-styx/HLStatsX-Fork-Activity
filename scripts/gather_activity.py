@@ -20,8 +20,6 @@ def get_repo_description(owner, repo, token):
     response.raise_for_status()
     repo_data = response.json()
     description = repo_data.get("description", "")
-    if description and description.startswith("HLstatsX Community Edition - "):
-        description = description.replace("HLstatsX Community Edition - ", "", 1)
     return description or ""
 
 # Function to get forks of a repository
@@ -175,6 +173,7 @@ def generate_html(fork_activity, parent_repo, parent_commits, parent_last_commit
             }
             .small-font {
                 font-size: small;
+                padding-left: 20px; /* Indent the description more to the right */
             }
         </style>
     </head>
@@ -208,7 +207,7 @@ def generate_html(fork_activity, parent_repo, parent_commits, parent_last_commit
         html_part += f'<td>{open_issues_count}</td>'
         html_part += f'<td>{last_release_number}</td>'
         html_part += '</tr>'
-        html_part += f'<tr><td colspan="6" class="small-font">{indent}{description}</td></tr>'
+        html_part += f'<tr><td colspan="6" class="small-font">{indent}&nbsp;&nbsp;&nbsp;&nbsp;{description}</td></tr>'
         return html_part
 
     # Add the parent repository at the top with description
