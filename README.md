@@ -1,3 +1,6 @@
+![example workflow](https://github.com/DNA-styx/HLStatsX-Fork-Activity/actions/workflows/fork-activity.yml/badge.svg)
+
+# HLStatsX Fork Activity
 Github Copilot created script that displays all forks (and forks of forks) of NomisCZ's original HLStatsX Repo.
 <br>
 Hopefully this is helpful to find Repos that are up-to-date and perhaps actively being maintained.  
